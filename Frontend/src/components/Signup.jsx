@@ -1,27 +1,50 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import axios from "axios";
+import toast from "react-hot-toast";
 
 function Signup() {
   const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors, isSubmitting }, watch, reset } = useForm();
   const password = React.useRef({});
   password.current = watch("password", "");
+
   const showModal = () => {
     navigate('/');
     setTimeout(() => {
       document.getElementById('my_modal_3').showModal();
-    }, 0); 
+    }, 0);
   };
+
+  const onSubmit = async (data) => {
+    const userInfo = {
+      fullname: data.fullname,
+      email: data.email,
+      password: data.password,
+    };
+
+    try {
+      const res = await axios.post("http://localhost:4001/user/signup", userInfo);
+      console.log(res.data);
+      if (res.data) {
+        toast.success("Signup Successfully");
+        navigate('/');  // Redirect after successful signup
+      }
+      localStorage.setItem("Users",JSON.stringify(res.data.user));
+    } catch (err) {
+      console.log(err);
+      toast.error("Error: " + (err.response?.data?.message || err.message));
+    }
+  };
+
   const handleSubmitForm = (data) => {
     if (data.password !== data.confirmPassword) {
       alert("Passwords do not match. Please re-enter your passwords.");
       reset();
       return;
     }
-    console.log('Signup form submitted', data);
-    alert("Signed up successfully! Now signing in to your account.");
-    navigate('/');
+    onSubmit(data);  // Call the onSubmit function
   };
 
   const handleClose = () => {
@@ -39,9 +62,9 @@ function Signup() {
         <h3 className="font-bold text-2xl text-center mb-6">Sign Up</h3>
         <form onSubmit={handleSubmit(handleSubmitForm)}>
           <div className="mb-4">
-            <label className="block mb-2">Name:</label>
-            <input type="text" className="input input-bordered w-full focus:outline-black" {...register("name", { required: true })} />
-            {errors.name && <span className="text-sm text-red-600">Name is required</span>}
+            <label className="block mb-2">Full Name:</label>
+            <input type="text" className="input input-bordered w-full focus:outline-black" {...register("fullname", { required: true })} />
+            {errors.fullname && <span className="text-sm text-red-600">Name is required</span>}
           </div>
           <div className="mb-4">
             <label className="block mb-2">Email:</label>

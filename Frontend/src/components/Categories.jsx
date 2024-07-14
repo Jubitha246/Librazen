@@ -1,11 +1,23 @@
-import React from 'react';
+import React ,{ useEffect, useState } from 'react';
 import "slick-carousel/slick/slick.css";
 import "slick-carousel/slick/slick-theme.css";
 import Slider from "react-slick";
-import list from '../../public/list.json';
-import Cards from './Cards'; // Adjust the path as needed
+import Cards from './Cards';
+import axios from "axios";
 
 function Categories() {
+  const [book,setBook] = useState([]);
+  useEffect(()=>{
+    const getBook = async() =>{
+      try{
+      const res = await axios.get("http://localhost:4001/book");
+      console.log(res.data);
+      setBook(res.data);
+    }catch(error){
+       console.log(error);
+    }};
+    getBook();
+  },[])
   var settings = {
     dots: true,
     infinite: false,
@@ -47,7 +59,7 @@ function Categories() {
         <h1 className="font-semibold text-xl pb-2">Categories</h1>
       </div>
       <Slider {...settings}>
-        {list.map(category => (
+        {book.slice(0, 6).map(category => (
           <div key={category.id} className="p-2">
             <Cards category={category} />
           </div>

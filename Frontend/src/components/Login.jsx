@@ -1,35 +1,56 @@
 import React, { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
+import axios from 'axios';
+import toast from 'react-hot-toast';
 
 function Login() {
   const [loginType, setLoginType] = useState(null);
+  const navigate = useNavigate();
   const { register, handleSubmit, formState: { errors } } = useForm();
-  const onSubmit = (data) => {
-    if (data.email && data.password) {
-      console.log(`Logging in as ${loginType}`, data);
-      alert(`Logging in as ${loginType}`);
-      document.getElementById('my_modal_3').close();
-    } else {
-      console.log("Email and Password are required");
-      // You can optionally set custom error messages or handle them as needed
+  const onSubmit = async (data) => {
+    const url = loginType === 'admin' ? '/user/login/admin' : '/user/login';
+    const userInfo = {
+      email: data.email,
+      password: data.password,
+    };
+    try {
+      const res = await axios.post(`http://localhost:4001${url}`, userInfo);
+      console.log(res.data);
+      if (res.data) {
+        toast.success(`Logged in as ${loginType.charAt(0).toUpperCase() + loginType.slice(1)} successfully`);
+        localStorage.setItem('token', res.data.token);
+        document.getElementById("my_modal_3").close();
+        setTimeout(() => {
+          window.location.reload();
+          localStorage.setItem("Users", JSON.stringify(res.data.user));
+        }, 1000);
+        navigate('/');  // Redirect after successful signup
+      }
+    } catch (err) {
+      console.log(err);
+      toast.error("Error: " + (err.response?.data?.message || err.message));
+      setTimeout(() => { }, 3000);
     }
   };
-
   // Function to open the modal
   const openModal = () => {
     document.getElementById('my_modal_3').showModal();
   };
-
+  // Function to close the modal and navigate to the home page
+  const closeModalAndNavigateHome = () => {
+    setLoginType(null);
+    document.getElementById('my_modal_3').close();
+    navigate('/');
+  };
   return (
     <dialog id="my_modal_3" className="modal">
       <div className="modal-box">
         {/* Close button for the modal */}
         <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2"
-          onClick={() => { setLoginType(null); document.getElementById('my_modal_3').close(); }}>
+          onClick={closeModalAndNavigateHome}>
           ✕
         </button>
-        
         {/* Conditional rendering based on loginType */}
         {loginType === null ? (
           <div>
@@ -42,7 +63,7 @@ function Login() {
             </div>
             <p className="text-center">
               {/* Link to Signup page */}
-              Don't have an account? <Link to="/signup" className="text-blue-500 underline" onClick={() => document.getElementById('my_modal_3').close()}>Sign up</Link>
+              Don't have an account? <Link to="/signup" className="text-blue-500 underline" onClick={closeModalAndNavigateHome}>Sign up</Link>
             </p>
           </div>
         ) : (
@@ -71,10 +92,10 @@ function Login() {
             </form>
             <p className="text-center">
               {/* Link to Signup page */}
-              Don't have an account? <Link to="/signup" className="text-blue-500 underline" onClick={() => document.getElementById('my_modal_3').close()}>Sign up</Link>
+              Don't have an account? <Link to="/signup" className="text-blue-500 underline" onClick={closeModalAndNavigateHome}>Sign up</Link>
             </p>
             {/* Close button inside the login form */}
-            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={() => setLoginType(null)}>✕</button>
+            <button className="btn btn-sm btn-circle btn-ghost absolute right-2 top-2" onClick={closeModalAndNavigateHome}>✕</button>
           </div>
         )}
       </div>
