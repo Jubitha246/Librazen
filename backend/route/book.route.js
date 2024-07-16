@@ -1,5 +1,5 @@
 import express from 'express';
-import { getBook,deleteBook,addBook,updateBook,getBooksByCategory,borrowBook,getBorrowedBooks,returnBook} from '../controller/book.controller.js';
+import { getBook,deleteBook,addBook,updateBook,getBooksByCategory} from '../controller/book.controller.js';
 import { isAuth, isAdmin } from '../middlewares/auth.middleware.js';
 import multer from 'multer';
 import path from 'path';
@@ -21,7 +21,4 @@ router.get("/", getBook);
 router.post('/', isAuth, isAdmin, upload.single('image'), addBook);
 router.put('/:id',isAuth,isAdmin,upload.single('image'),updateBook)
 router.get('/category/:categoryName', getBooksByCategory);
-router.post('/borrow/:bookId', isAuth, borrowBook);
-router.post('return/:bookId',isAuth,returnBook);
-router.get('/borrowed',isAuth,getBorrowedBooks);
 export default router;
