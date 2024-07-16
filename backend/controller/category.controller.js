@@ -26,3 +26,16 @@ export const addCategory = async (req, res) => {
       res.status(500).json({ message: 'Error adding category', error });
     }
   };
+  
+  export const deleteCategory = async (req, res) => {
+    const { id } = req.params;
+    try {
+      const category = await Category.findByIdAndDelete(id);
+      if (!category) {
+        return res.status(404).json({ message: 'Category not found' });
+      }
+      res.status(200).json({ message: 'Category deleted successfully', category });
+    } catch (error) {
+      res.status(500).json({ message: 'Error deleting category', error });
+    }
+  };
