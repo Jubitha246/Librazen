@@ -1,9 +1,4 @@
-Here's a comprehensive README file for your GitHub repository regarding the Librazen project:
-
----
-
 # Librazen
-
 Librazen is a full-stack web application designed to manage a library's book lending system. It provides an efficient platform for users to borrow and return books while allowing administrators to manage the library's inventory.
 
 ## Table of Contents
