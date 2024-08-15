@@ -45,7 +45,7 @@ Librazen is a full-stack web application designed to manage a library's book len
 ## Setup and Installation
 
 1. **Clone the repository:**
-   git clone https://github.com/your-username/librazen.git
+   git clone https://github.com/Jubitha246/librazen.git
    cd librazen
 2. **Backend Setup:**
    - Navigate to the backend directory and install dependencies:
