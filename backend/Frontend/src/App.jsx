@@ -3,8 +3,10 @@ import { Navigate, Route, Routes } from 'react-router-dom';
 import Home from './home/Home';
 import Catalogues from './Catalogues/Catalogues';
 import Signup from './components/Signup';
-import UserProfile from './components/UserProfile'; // Add this import
+import UserProfile from './components/UserProfile';
 import AdminProfile from './components/AdminProfile';
+import AdminPortal from './components/AdminPortal';
+import AdminAnalytics from './components/AdminAnalytics';
 import { Toaster } from 'react-hot-toast';
 import { useAuth } from './context/AuthProvider';
 
@@ -18,7 +20,9 @@ function App() {
         <Route path="/Catalogue" element={authUser ? <Catalogues /> : <Navigate to="/signup" />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/user/profile" element={authUser ? <UserProfile /> : <Navigate to="/signup" />} /> {/* Add this route */}
-        <Route path ="/admin/profile" element={authUser?.role === 'admin' ? <AdminProfile /> : <Navigate to="/signup" />}/>
+        <Route path="/admin" element={authUser?.role === 'admin' ? <AdminPortal /> : <Navigate to="/signup" />} />
+        <Route path="/admin/profile" element={authUser?.role === 'admin' ? <AdminProfile /> : <Navigate to="/signup" />} />
+        <Route path="/admin/analytics" element={authUser?.role === 'admin' ? <AdminAnalytics /> : <Navigate to="/signup" />} />
       </Routes>
       <Toaster />
     </>

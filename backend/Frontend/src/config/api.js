@@ -12,6 +12,7 @@ export const API_ENDPOINTS = {
   // Book endpoints
   BOOKS: `${API_BASE_URL}/book`,
   BOOKS_BY_CATEGORY: `${API_BASE_URL}/book/category`,
+  BOOKS_ANALYTICS: `${API_BASE_URL}/book/analytics`,
   BORROW_BOOK: `${API_BASE_URL}/user/borrow`,
   
   // Category endpoints

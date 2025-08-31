@@ -42,7 +42,7 @@ function Navbar() {
         toast.success("Admin Logged In Successfully");
         document.getElementById('my_modal_3').close();
         localStorage.setItem("Users", JSON.stringify(res.data.user));
-        navigate('/admin'); // Redirect to admin dashboard or portal
+        navigate('/admin/profile'); // Redirect to admin profile first
       }
     } catch (err) {
       toast.error("Error: " + (err.response?.data?.message || err.message));
@@ -64,7 +64,13 @@ function Navbar() {
               <li><a>About Us</a></li>
               {authUser && authUser.role === 'user' && <li><Link to="/catalogue">Catalogue</Link></li>}
               <li><a href="/Leaderboard">Leaderboard</a></li>
-              {authUser && authUser.role === 'admin' && <li><Link to="/admin/profile">Admin Portal</Link></li>}
+              {authUser && authUser.role === 'admin' && (
+                <>
+                  <li><Link to="/admin">Admin Portal</Link></li>
+                  <li><Link to="/admin/profile">Admin Profile</Link></li>
+                  <li><Link to="/admin/analytics">Analytics</Link></li>
+                </>
+              )}
             </ul>
           </div>
           <a className="text-2xl text-black font-bold cursor-pointer ml-4">Librazen</a>
@@ -75,7 +81,13 @@ function Navbar() {
             <li><a>About Us</a></li>
             {authUser && authUser.role === 'user' && <li><Link to="/catalogue">Catalogue</Link></li>}
             <li><a>Leaderboard</a></li>
-            {authUser && authUser.role === 'admin' && <li><Link to="/admin/profile">Admin Portal</Link></li>}
+            {authUser && authUser.role === 'admin' && (
+              <>
+                <li><Link to="/admin">Admin Portal</Link></li>
+                <li><Link to="/admin/profile">Admin Profile</Link></li>
+                <li><Link to="/admin/analytics">Analytics</Link></li>
+              </>
+            )}
           </ul>
         </div>
         <div className="navbar-end flex items-center space-x-3">
