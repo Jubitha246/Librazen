@@ -7,17 +7,15 @@ import Book from '../model/book.model.js';
 export const signup = async (req, res) => {
   try {
     const { fullname, email, password, role } = req.body;
-    // Check if user already exists
     const existingUser = await User.findOne({ email });
     if (existingUser) return res.status(400).json({ message: 'User already exists' });
-    // Hash the password
+
     const hashedPassword = await bcrypt.hash(password, 12);
-    // Create a new user
     const newUser = new User({
       fullname,
       email,
       password: hashedPassword,
-      role: role || 'user', // Default role is 'user'
+      role: role || 'user',
     });
     await newUser.save();
     res.status(201).json({ message: 'User created successfully' });
@@ -60,44 +58,13 @@ export const loginAdmin = async (req, res) => {
   }
 };
 
-// User Profile
-export const getUserProfile = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const user = await User.findById(userId);
-    if (!user) return res.status(404).json({ message: 'User not found' });
-
-    const issuedBooks = await Book.find({ issuedTo: userId });
-    const dueBooks = issuedBooks.filter(book => book.dueDate < new Date());
-    const returnedBooks = issuedBooks.filter(book => book.returned);
-    const dues = dueBooks.length * 10;
-
-    res.status(200).json({
-      user: {
-        fullname: user.fullname,
-        email: user.email,
-        role: user.role
-      },
-      booksIssued: issuedBooks.length,
-      booksReturned: returnedBooks.length,
-      dues,
-      deadlines: issuedBooks.map(book => ({
-        title: book.title,
-        author: book.author,
-        category: book.category,
-        image: book.image,
-        dueDate: book.dueDate
-      }))
-    });
-  } catch (error) {
-    res.status(500).json({ message: error.message });
-  }
-};
-// Admin Profile
+// Get admin profile
 export const getAdminProfile = async (req, res) => {
   try {
     const adminId = req.user._id;
-    const admin = await User.findById(adminId);
+    const admin = await User.findById(adminId).select('-password');
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+
     res.status(200).json({
       user: {
         fullname: admin.fullname,
@@ -116,39 +83,94 @@ export const getAdminProfile = async (req, res) => {
     res.status(500).json({ message: error.message });
   }
 };
-//borrowed books for user
-export const getBorrowedBooks = async (req, res) => {
-  try {
-    const user = await User.findById(req.user._id).populate('borrowedBooks.book');
-    if (!user) {
-      return res.status(404).json({ message: 'User not found' });
-    }
 
-    res.status(200).json(user.borrowedBooks);
-  } catch (error) {
-    res.status(500).json({ message: 'Error fetching borrowed books', error });
+// Get user profile
+export const getUserProfile = async (req, res) => {
+  try {
+    const userId = req.user._id;
+    const user = await User.findById(userId).select('-password').populate('borrowedBooks.book');
+    if (!user) return res.status(404).json({ message: 'User not found' });
+
+    const booksIssued = user.borrowedBooks.length;
+    const booksReturned = user.borrowedBooks.filter(borrow => borrow.returnedDate).length;
+
+    res.json({ 
+      user: {
+        fullname: user.fullname,
+        email: user.email,
+        role: user.role,
+        booksIssued,
+        booksReturned,
+        dues: user.dues
+      },
+      borrowedBooks: user.borrowedBooks
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
   }
 };
-//return book
-export const returnBook = async (req, res) => {
-  const { bookId } = req.params;
-  try {
-    const user = await User.findById(req.user._id);
-    const borrowedBookIndex = user.borrowedBooks.findIndex(borrowedBook => borrowedBook.book.toString() === bookId);
-    if (borrowedBookIndex === -1) {
-      return res.status(404).json({ message: 'Book not found in borrowed books' });
-    }
-    const { dueDate } = user.borrowedBooks[borrowedBookIndex];
-    await User.findByIdAndUpdate(req.user._id, {
-      $pull: { borrowedBooks: { book: bookId } }
-    });
-    await Book.findByIdAndUpdate(bookId, {
-      $pull: { borrowedBy: { user: req.user._id } },
-      $inc: { availableCopies: 1 }
-    });
 
+// Borrow a book
+export const borrowBook = async (req, res) => {
+  try {
+    const { bookId, dueDate } = req.body;
+    const userId = req.user.id;
+    const book = await Book.findById(bookId);
+    const user = await User.findById(userId);
+    if (!book || book.availableCopies <= 0) {
+      return res.status(400).json({ message: 'Book is not available' });
+    }
+
+    const existingBorrow = user.borrowedBooks.find(b => b.book.toString() === bookId && !b.returnedDate);
+    if (existingBorrow) {
+      return res.status(400).json({ message: 'You have already borrowed this book' });
+    }
+
+    user.borrowedBooks.push({ book: bookId, borrowDate: Date.now(), dueDate, status: 'Pending' });
+    user.booksIssued += 1;
+
+    book.borrowedBy.push({ user: user._id, borrowDate: Date.now(), dueDate, status: 'Pending' });
+    book.availableCopies -= 1;
+
+    await user.save();
+    await book.save();
+    res.status(200).json({ message: 'Book borrowed successfully' });
+  } catch (error) {
+    res.status(500).json({ message: 'Server Error', error });
+  }
+};
+
+// Return a book
+export const returnBook = async (req, res) => {
+  try {
+    const { bookId } = req.body;
+    const userId = req.user.id;
+    const user = await User.findById(userId);
+    const book = await Book.findById(bookId);
+    if (!book) {
+      return res.status(404).json({ message: 'Book not found' });
+    }
+
+    const borrowIndex = user.borrowedBooks.findIndex(b => b.book.toString() === bookId && !b.returnedDate);
+    if (borrowIndex === -1) {
+      return res.status(400).json({ message: 'This book was not borrowed or already returned' });
+    }
+
+    user.borrowedBooks[borrowIndex].returnedDate = Date.now();
+    user.borrowedBooks[borrowIndex].status = 'Returned';
+    user.booksReturned += 1;
+
+    const borrowEntry = book.borrowedBy.find(b => b.user.toString() === user._id.toString() && !b.returnedDate);
+    if (borrowEntry) {
+      borrowEntry.returnedDate = Date.now();
+      borrowEntry.status = 'Returned';
+    }
+
+    book.availableCopies += 1;
+    await user.save();
+    await book.save();
     res.status(200).json({ message: 'Book returned successfully' });
   } catch (error) {
-    res.status(500).json({ message: 'Error returning book', error });
+    res.status(500).json({ message: 'Server Error', error });
   }
 };

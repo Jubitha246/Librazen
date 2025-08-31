@@ -3,6 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useForm } from 'react-hook-form';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { API_ENDPOINTS } from '../config/api';
 
 function Login() {
   const [loginType, setLoginType] = useState(null);
@@ -15,7 +16,7 @@ function Login() {
       password: data.password,
     };
     try {
-      const res = await axios.post(`http://localhost:4001${url}`, userInfo);
+      const res = await axios.post(loginType === 'admin' ? API_ENDPOINTS.ADMIN_LOGIN : API_ENDPOINTS.LOGIN, userInfo);
       console.log(res.data);
       if (res.data) {
         toast.success(`Logged in as ${loginType.charAt(0).toUpperCase() + loginType.slice(1)} successfully`);

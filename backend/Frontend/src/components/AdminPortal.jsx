@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 import Navbar from '../components/Navbar';
-import { toast } from 'react-hot-toast';
+import { toast, Toaster } from 'react-hot-toast';
+import { API_ENDPOINTS } from '../config/api';
 
 function AdminPortal() {
   const [books, setBooks] = useState([]);
@@ -13,7 +14,7 @@ function AdminPortal() {
   useEffect(() => {
     const fetchBooks = async () => {
       try {
-        const res = await axios.get('http://localhost:4001/book');
+        const res = await axios.get(API_ENDPOINTS.BOOKS);
         setBooks(res.data);
       } catch (error) {
         console.error('Error fetching books:', error);
@@ -22,7 +23,7 @@ function AdminPortal() {
 
     const fetchCategories = async () => {
       try {
-        const res = await axios.get('http://localhost:4001/category');
+        const res = await axios.get(API_ENDPOINTS.CATEGORIES);
         setCategories(res.data);
       } catch (error) {
         console.error('Error fetching categories:', error);
@@ -51,12 +52,12 @@ function AdminPortal() {
     formData.append('image', newBook.image);
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:4001/book', formData, {
+      await axios.post(API_ENDPOINTS.BOOKS, formData, {
         headers: { Authorization: `Bearer ${token}`, 'Content-Type': 'multipart/form-data' }
       });
       toast.success('Book added successfully');
       setNewBook({ title: '', author: '', category: '', image: null });
-      const res = await axios.get('http://localhost:4001/book');
+      const res = await axios.get(API_ENDPOINTS.BOOKS);
       setBooks(res.data);
     } catch (error) {
       console.error('Error adding book:', error);
@@ -80,7 +81,7 @@ function AdminPortal() {
       });
       toast.success('Book updated successfully');
       setSelectedBook(null);
-      const res = await axios.get('http://localhost:4001/book');
+      const res = await axios.get(API_ENDPOINTS.BOOKS);
       setBooks(res.data);
     } catch (error) {
       console.error('Error updating book:', error);
@@ -106,12 +107,12 @@ function AdminPortal() {
     e.preventDefault();
     try {
       const token = localStorage.getItem('token');
-      await axios.post('http://localhost:4001/category', { name: newCategory }, {
+      await axios.post(API_ENDPOINTS.CATEGORIES, { name: newCategory }, {
         headers: { Authorization: `Bearer ${token}` }
       });
       toast.success('Category added successfully');
       setNewCategory('');
-      const res = await axios.get('http://localhost:4001/category');
+      const res = await axios.get(API_ENDPOINTS.CATEGORIES);
       setCategories(res.data);
     } catch (error) {
       console.error('Error adding category:', error);
@@ -121,14 +122,15 @@ function AdminPortal() {
 
   return (
     <>
-      <Navbar />
+      <Navbar /> {/* Ensure Navbar is included */}
+      <Toaster /> {/* Toaster for toast notifications */}
       <div className="container mx-auto max-w-screen-xl md:px-8 px-4 mt-8">
         <div className="mt-20">
-          <h1 className="text-xl md:text-3xl font-bold text-center mb-4">Admin Portal</h1>
+          <h1 className="text-xl md:text-3xl lg:text-4xl font-bold text-center mb-4">Admin Portal</h1>
           
           {/* Add New Category Section */}
           <div className="bg-white p-4 rounded-lg shadow-md mb-8 max-w-md mx-auto">
-            <h2 className="text-xl font-semibold mb-4">Add New Category</h2>
+            <h2 className="text-xl md:text-xl font-semibold mb-4">Add New Category</h2>
             <form onSubmit={handleAddCategory} className="flex flex-col">
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Category Name</label>
@@ -148,7 +150,7 @@ function AdminPortal() {
           
           {/* Add New Book Section */}
           <div className="bg-white p-4 rounded-lg shadow-md mb-8 max-w-md mx-auto">
-            <h2 className="text-xl font-semibold mb-4">Add New Book</h2>
+            <h2 className="text-xl md:text-xl lg:text-2xl font-semibold mb-4">Add New Book</h2>
             <form onSubmit={handleAddBook} className="flex flex-col">
               <div className="mb-4">
                 <label className="block text-sm font-medium mb-2">Title</label>
@@ -215,30 +217,26 @@ function AdminPortal() {
                   <th className="py-2 px-4 border-b-2 border-gray-400 bg-gray-50">Title</th>
                   <th className="py-2 px-4 border-b-2 border-gray-400 bg-gray-50">Author</th>
                   <th className="py-2 px-4 border-b-2 border-gray-400 bg-gray-50">Category</th>
-                  <th className="py-2 px-4 border-b-2 border-gray-400 bg-gray-50">Image</th>
                   <th className="py-2 px-4 border-b-2 border-gray-400 bg-gray-50">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {books.map((book, index) => (
-                  <tr key={book._id} className="text-center">
-                    <td className="py-2 px-4 border-b border-gray-300">{index + 1}</td>
-                    <td className="py-2 px-4 border-b border-gray-300">{book.title}</td>
-                    <td className="py-2 px-4 border-b border-gray-300">{book.author}</td>
-                    <td className="py-2 px-4 border-b border-gray-300">{book.category}</td>
-                    <td className="py-2 px-4 border-b border-gray-300">
-                      <img src={`http://localhost:4001/uploads/${book.image}`} alt={book.title} className="h-20 w-20 object-cover mx-auto" />
-                    </td>
-                    <td className="py-2 px-4 border-b border-gray-300 space-x-2">
+                  <tr key={book._id}>
+                    <td className="py-2 px-4 border-b border-gray-200 text-center">{index + 1}</td>
+                    <td className="py-2 px-4 border-b border-gray-200 text-center">{book.title}</td>
+                    <td className="py-2 px-4 border-b border-gray-200 text-center">{book.author}</td>
+                    <td className="py-2 px-4 border-b border-gray-200 text-center">{book.category}</td>
+                    <td className="py-2 px-4 border-b border-gray-200 text-center">
                       <button
                         onClick={() => setSelectedBook(book)}
-                        className="bg-yellow-500 text-white py-1 px-2 rounded-md hover:bg-yellow-700"
+                        className="bg-yellow-500 text-white p-2 rounded-md mr-2 hover:bg-yellow-600"
                       >
                         Edit
                       </button>
                       <button
                         onClick={() => handleDeleteBook(book._id)}
-                        className="bg-red-500 text-white py-1 px-2 rounded-md hover:bg-red-600"
+                        className="bg-red-500 text-white p-2 rounded-md hover:bg-red-600"
                       >
                         Delete
                       </button>
@@ -249,9 +247,10 @@ function AdminPortal() {
             </table>
           </div>
 
+          {/* Edit Book Section */}
           {selectedBook && (
-            <div className="bg-white max-w-md mx-auto p-4 rounded-lg shadow-md mb-8">
-              <h2 className="text-xl font-semibold mb-4">Edit Book</h2>
+            <div className="bg-white p-4 rounded-lg shadow-md max-w-md mx-auto mb-8">
+              <h2 className="text-xl md:text-xl lg:text-2xl font-semibold mb-4">Edit Book</h2>
               <form onSubmit={handleUpdateBook} className="flex flex-col">
                 <div className="mb-4">
                   <label className="block text-sm font-medium mb-2">Title</label>
@@ -294,14 +293,13 @@ function AdminPortal() {
                   <label className="block text-sm font-medium mb-2">Image</label>
                   <input
                     type="file"
-                    name="image"
                     onChange={(e) => setSelectedBook({ ...selectedBook, image: e.target.files[0] })}
                     className="border border-gray-300 p-2 rounded-md w-full"
                   />
                 </div>
                 <button
                   type="submit"
-                  className="bg-blue-500 text-white p-2 rounded-md w-32 mx-auto hover:bg-blue-600"
+                  className="bg-green-500 text-white p-2 rounded-md w-32 mx-auto hover:bg-green-600"
                 >
                   Update Book
                 </button>

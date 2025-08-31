@@ -10,16 +10,18 @@ import path from 'path';
 dotenv.config();
 
 const app = express();
-app.use(cors());
+app.use(cors({
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://your-frontend-app.vercel.app', 'http://localhost:3000'] 
+    : 'http://localhost:3000',
+  credentials: true
+}));
 app.use(express.json());
 
 const PORT = process.env.PORT || 4000;
 const URI = process.env.MongoDBURI;
 
-mongoose.connect(URI, {
-  useNewUrlParser: true,
-  useUnifiedTopology: true,
-}).then(() => {
+mongoose.connect(URI).then(() => {
   console.log("Connected to MongoDB");
 }).catch(error => {
   console.log("Error:", error);
@@ -30,6 +32,14 @@ app.use('/uploads', express.static(path.join(path.resolve(), 'uploads')));
 app.use("/book", bookRoute);
 app.use("/user", userRoute);
 app.use("/category", categoryRoute);
+//deployment
+if(process.env.NODE_ENV === "production"){
+  const dirPath = path.resolve();
+  app.use(express.static(path.join(dirPath,"Frontend","dist")));
+  app.get("*",(req,res) => {
+     res.sendFile(path.resolve(dirPath,"Frontend","dist","index.html"));
+  })
+}
 app.listen(PORT, () => {
   console.log(`Server is listening on PORT ${PORT}`);
 });

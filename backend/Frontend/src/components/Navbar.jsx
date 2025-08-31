@@ -5,6 +5,7 @@ import Logout from '../components/Logout';
 import { useAuth } from '../context/AuthProvider';
 import axios from 'axios';
 import toast from 'react-hot-toast';
+import { API_ENDPOINTS } from '../config/api';
 
 function Navbar() {
   const [authUser, setAuthUser] = useAuth();
@@ -28,7 +29,7 @@ function Navbar() {
 
   const handleAdminLogin = async () => {
     try {
-      const res = await axios.post("http://localhost:4001/user/login/admin", {
+      const res = await axios.post(API_ENDPOINTS.ADMIN_LOGIN, {
         email: 'admin@example.com',
         password: 'adminpassword'
       });
@@ -61,7 +62,7 @@ function Navbar() {
             <ul tabIndex={0} className="menu menu-sm dropdown-content bg-white rounded-box z-[1] mt-3 w-52 p-2 shadow">
               <li><Link to="/">Home</Link></li>
               <li><a>About Us</a></li>
-              <li><Link to="/catalogue">Catalogue</Link></li>
+              {authUser && authUser.role === 'user' && <li><Link to="/catalogue">Catalogue</Link></li>}
               <li><a href="/Leaderboard">Leaderboard</a></li>
               {authUser && authUser.role === 'admin' && <li><Link to="/admin/profile">Admin Portal</Link></li>}
             </ul>
@@ -69,11 +70,11 @@ function Navbar() {
           <a className="text-2xl text-black font-bold cursor-pointer ml-4">Librazen</a>
         </div>
         <div className="navbar-center hidden lg:flex">
-          <ul className="menu menu-horizontal px-1">
+          <ul className="menu menu-horizontal px-1 text-xl">
             <li><Link to="/">Home</Link></li>
             <li><a>About Us</a></li>
-            <li><Link to="/catalogue">Catalogue</Link></li>
-            <li><a href="/Leaderboard">Leaderboard</a></li>
+            {authUser && authUser.role === 'user' && <li><Link to="/catalogue">Catalogue</Link></li>}
+            <li><a>Leaderboard</a></li>
             {authUser && authUser.role === 'admin' && <li><Link to="/admin/profile">Admin Portal</Link></li>}
           </ul>
         </div>
