@@ -2,8 +2,8 @@ import React from 'react'
 
 function Footer() {
   return (
-    <div claassName="flex flex-col min-h screen bg-black">
-        <footer className="footer footer-center bg-base-200 text-base-content rounded p-10 mt-40">
+    <div className="bg-black">
+        <footer className="footer footer-center bg-base-200 text-base-content rounded p-10">
     <nav className="grid grid-flow-col gap-4">
       <a className="link link-hover">About us</a>
       <a className="link link-hover">Contact</a>
@@ -48,7 +48,7 @@ function Footer() {
       </div>
     </nav>
     <aside>
-      <p>Copyright © ${new Date().getFullYear()} - All right reserved</p>
+      <p>Copyright © {new Date().getFullYear()} - All right reserved</p>
     </aside>
   </footer></div>
   )

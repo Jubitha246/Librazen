@@ -84,6 +84,54 @@ export const getAdminProfile = async (req, res) => {
   }
 };
 
+// update admin profile
+export const updateAdminProfile = async (req, res) => {
+  try {
+    const adminId = req.user._id;
+    const { fullname, email, currentPassword, newPassword } = req.body;
+    
+    const admin = await User.findById(adminId);
+    if (!admin) return res.status(404).json({ message: 'Admin not found' });
+
+    // Check if email is being changed and if it already exists
+    if (email !== admin.email) {
+      const existingUser = await User.findOne({ email, _id: { $ne: adminId } });
+      if (existingUser) {
+        return res.status(400).json({ message: 'Email already exists' });
+      }
+    }
+
+    // Update basic information
+    admin.fullname = fullname;
+    admin.email = email;
+
+    // Update password if provided
+    if (currentPassword && newPassword) {
+      const isMatch = await bcrypt.compare(currentPassword, admin.password);
+      if (!isMatch) {
+        return res.status(400).json({ message: 'Current password is incorrect' });
+      }
+      
+      const hashedPassword = await bcrypt.hash(newPassword, 12);
+      admin.password = hashedPassword;
+    }
+
+    await admin.save();
+
+    res.status(200).json({
+      message: 'Profile updated successfully',
+      user: {
+        fullname: admin.fullname,
+        email: admin.email,
+        role: admin.role
+      }
+    });
+  } catch (error) {
+    console.error('Error updating admin profile:', error);
+    res.status(500).json({ message: 'Error updating profile', error: error.message });
+  }
+};
+
 // Get user profile
 export const getUserProfile = async (req, res) => {
   try {
@@ -172,5 +220,218 @@ export const returnBook = async (req, res) => {
     res.status(200).json({ message: 'Book returned successfully' });
   } catch (error) {
     res.status(500).json({ message: 'Server Error', error });
+  }
+};
+
+// Get all users with borrowed books (Admin only)
+export const getAllUsersWithBorrowedBooks = async (req, res) => {
+  try {
+    const users = await User.find({ 
+      'borrowedBooks.0': { $exists: true },
+      role: 'user' // Only include regular users, not admins
+    })
+      .select('-password')
+      .populate('borrowedBooks.book')
+      .sort({ 'borrowedBooks.borrowDate': -1 });
+
+    const usersWithBorrowedBooks = users.map(user => ({
+      _id: user._id,
+      fullname: user.fullname,
+      email: user.email,
+      borrowedBooks: user.borrowedBooks.filter(borrow => !borrow.returnedDate),
+      totalBorrowed: user.borrowedBooks.length,
+      activeBorrows: user.borrowedBooks.filter(borrow => !borrow.returnedDate).length
+    }));
+
+    res.status(200).json(usersWithBorrowedBooks);
+  } catch (error) {
+    console.error('Error fetching users with borrowed books:', error);
+    res.status(500).json({ message: 'Error fetching users with borrowed books', error });
+  }
+};
+
+// Get overdue users (Admin only)
+export const getOverdueUsers = async (req, res) => {
+  try {
+    const currentDate = new Date();
+    const users = await User.find({
+      'borrowedBooks': {
+        $elemMatch: {
+          'dueDate': { $lt: currentDate },
+          'returnedDate': { $exists: false }
+        }
+      },
+      role: 'user' // Only include regular users, not admins
+    })
+    .select('-password')
+    .populate('borrowedBooks.book');
+
+    const overdueUsers = users.map(user => {
+      const overdueBooks = user.borrowedBooks.filter(borrow => 
+        !borrow.returnedDate && new Date(borrow.dueDate) < currentDate
+      );
+
+      return {
+        _id: user._id,
+        fullname: user.fullname,
+        email: user.email,
+        overdueBooks: overdueBooks.map(borrow => ({
+          book: borrow.book,
+          borrowDate: borrow.borrowDate,
+          dueDate: borrow.dueDate,
+          daysOverdue: Math.ceil((currentDate - new Date(borrow.dueDate)) / (1000 * 3600 * 24)),
+          fine: Math.ceil((currentDate - new Date(borrow.dueDate)) / (1000 * 3600 * 24)) * 2
+        })),
+        totalOverdue: overdueBooks.length,
+        totalFine: overdueBooks.reduce((total, borrow) => {
+          const daysOverdue = Math.ceil((currentDate - new Date(borrow.dueDate)) / (1000 * 3600 * 24));
+          return total + (daysOverdue * 2);
+        }, 0)
+      };
+    });
+
+    res.status(200).json(overdueUsers);
+  } catch (error) {
+    console.error('Error fetching overdue users:', error);
+    res.status(500).json({ message: 'Error fetching overdue users', error });
+  }
+};
+
+// Get library statistics (Admin only)
+export const getLibraryStatistics = async (req, res) => {
+  try {
+    const totalUsers = await User.countDocuments({ role: 'user' }); // Only count regular users
+    const totalBooks = await Book.countDocuments();
+    const totalBorrowedBooks = await Book.aggregate([
+      {
+        $project: {
+          borrowedCount: {
+            $size: {
+              $filter: {
+                input: '$borrowedBy',
+                cond: { $eq: ['$$this.status', 'Pending'] }
+              }
+            }
+          }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          totalBorrowed: { $sum: '$borrowedCount' }
+        }
+      }
+    ]);
+
+    const overdueBooks = await Book.aggregate([
+      {
+        $unwind: '$borrowedBy'
+      },
+      {
+        $match: {
+          'borrowedBy.dueDate': { $lt: new Date() },
+          'borrowedBy.returnedDate': { $exists: false }
+        }
+      },
+      {
+        $group: {
+          _id: null,
+          count: { $sum: 1 }
+        }
+      }
+    ]);
+
+    const categoryStats = await Book.aggregate([
+      {
+        $group: {
+          _id: '$category',
+          count: { $sum: 1 },
+          available: { $sum: '$availableCopies' }
+        }
+      }
+    ]);
+
+    // Get popular books (most borrowed)
+    const popularBooks = await Book.aggregate([
+      {
+        $project: {
+          title: 1,
+          author: 1,
+          borrowCount: { $size: '$borrowedBy' }
+        }
+      },
+      {
+        $sort: { borrowCount: -1 }
+      },
+      {
+        $limit: 5
+      }
+    ]);
+
+    // Get top readers (users with most books borrowed)
+    const topReaders = await User.aggregate([
+      {
+        $match: { role: 'user' }
+      },
+      {
+        $project: {
+          fullname: 1,
+          booksRead: { $size: '$borrowedBooks' }
+        }
+      },
+      {
+        $sort: { booksRead: -1 }
+      },
+      {
+        $limit: 5
+      }
+    ]);
+
+    // Get monthly borrowing trends (last 6 months)
+    const sixMonthsAgo = new Date();
+    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
+
+    const monthlyBorrows = await Book.aggregate([
+      {
+        $unwind: '$borrowedBy'
+      },
+      {
+        $match: {
+          'borrowedBy.borrowDate': { $gte: sixMonthsAgo }
+        }
+      },
+      {
+        $group: {
+          _id: {
+            year: { $year: '$borrowedBy.borrowDate' },
+            month: { $month: '$borrowedBy.borrowDate' }
+          },
+          count: { $sum: 1 }
+        }
+      },
+      {
+        $sort: { '_id.year': 1, '_id.month': 1 }
+      }
+    ]);
+
+    const stats = {
+      totalUsers,
+      totalBooks,
+      totalBorrowedBooks: totalBorrowedBooks[0]?.totalBorrowed || 0,
+      overdueBooks: overdueBooks[0]?.count || 0,
+      availableBooks: totalBooks - (totalBorrowedBooks[0]?.totalBorrowed || 0),
+      categoryStats,
+      popularBooks,
+      topReaders,
+      monthlyBorrows: monthlyBorrows.map(item => ({
+        month: new Date(item._id.year, item._id.month - 1).toLocaleDateString('en-US', { month: 'short' }),
+        borrows: item.count
+      }))
+    };
+
+    res.status(200).json(stats);
+  } catch (error) {
+    console.error('Error fetching library statistics:', error);
+    res.status(500).json({ message: 'Error fetching library statistics', error });
   }
 };

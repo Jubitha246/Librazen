@@ -9,19 +9,7 @@ import { API_ENDPOINTS } from '../config/api';
 
 function Navbar() {
   const [authUser, setAuthUser] = useAuth();
-  const [sticky, setSticky] = useState(false);
   const navigate = useNavigate();
-
-  useEffect(() => {
-    const handleScroll = () => {
-      setSticky(window.scrollY > 0);
-    };
-
-    window.addEventListener('scroll', handleScroll);
-    return () => {
-      window.removeEventListener('scroll', handleScroll);
-    };
-  }, []);
 
   const showModal = () => {
     document.getElementById('my_modal_3').showModal();
@@ -50,7 +38,7 @@ function Navbar() {
   };
 
   return (
-    <div className={`max-w-screen-2xl container mx-auto md:px-20 px-4 fixed top-0 left-0 right-0${sticky ? " sticky-navbar shadow-md bg-slate-100 transition-all ease-in-out z-50" : ""}`}>
+    <div className={`max-w-screen-2xl container mx-auto md:px-20 px-4 sticky top-0 z-50 bg-white/90 backdrop-blur-sm shadow-sm`}>
       <div className="navbar flex justify-between items-center">
         <div className="navbar-start flex items-center">
           <div className="dropdown">
@@ -61,9 +49,9 @@ function Navbar() {
             </div>
             <ul tabIndex={0} className="menu menu-sm dropdown-content bg-white rounded-box z-[1] mt-3 w-52 p-2 shadow">
               <li><Link to="/">Home</Link></li>
-              <li><a>About Us</a></li>
+              <li><Link to="/about">About Us</Link></li>
               {authUser && authUser.role === 'user' && <li><Link to="/catalogue">Catalogue</Link></li>}
-              <li><a href="/Leaderboard">Leaderboard</a></li>
+              <li><Link to="/leaderboard">Leaderboard</Link></li>
               {authUser && authUser.role === 'admin' && (
                 <>
                   <li><Link to="/admin">Admin Portal</Link></li>
@@ -78,9 +66,9 @@ function Navbar() {
         <div className="navbar-center hidden lg:flex">
           <ul className="menu menu-horizontal px-1 text-xl">
             <li><Link to="/">Home</Link></li>
-            <li><a>About Us</a></li>
+            <li><Link to="/about">About Us</Link></li>
             {authUser && authUser.role === 'user' && <li><Link to="/catalogue">Catalogue</Link></li>}
-            <li><a>Leaderboard</a></li>
+            <li><Link to="/leaderboard">Leaderboard</Link></li>
             {authUser && authUser.role === 'admin' && (
               <>
                 <li><Link to="/admin">Admin Portal</Link></li>

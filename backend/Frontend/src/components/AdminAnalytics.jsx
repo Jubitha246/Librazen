@@ -48,47 +48,42 @@ function AdminAnalytics() {
   const fetchAnalytics = async () => {
     try {
       const token = localStorage.getItem('token');
-      const response = await axios.get(`${API_ENDPOINTS.BOOKS}/analytics`, {
+      const response = await axios.get(API_ENDPOINTS.ADMIN_STATISTICS, {
         headers: { Authorization: `Bearer ${token}` }
       });
-      setAnalytics(response.data);
+
+      const stats = response.data;
+      setAnalytics({
+        totalBooks: stats.totalBooks || 0,
+        totalUsers: stats.totalUsers || 0,
+        totalBorrows: stats.totalBorrowedBooks || 0,
+        overdueBooks: stats.overdueBooks || 0,
+        popularBooks: stats.popularBooks?.map(book => ({
+          title: book.title,
+          borrows: book.borrowCount
+        })) || [],
+        categoryDistribution: stats.categoryStats?.map(cat => ({
+          category: cat._id,
+          count: cat.count
+        })) || [],
+        monthlyBorrows: stats.monthlyBorrows || [],
+        userActivity: stats.topReaders?.map(user => ({
+          user: user.fullname,
+          booksRead: user.booksRead
+        })) || []
+      });
     } catch (error) {
       console.error('Error fetching analytics:', error);
-      // Mock data for demonstration
+      // Set empty data instead of mock data
       setAnalytics({
-        totalBooks: 150,
-        totalUsers: 45,
-        totalBorrows: 320,
-        overdueBooks: 12,
-        popularBooks: [
-          { title: 'The Great Gatsby', borrows: 25 },
-          { title: 'To Kill a Mockingbird', borrows: 22 },
-          { title: '1984', borrows: 20 },
-          { title: 'Pride and Prejudice', borrows: 18 },
-          { title: 'The Hobbit', borrows: 15 }
-        ],
-        categoryDistribution: [
-          { category: 'Fiction', count: 45 },
-          { category: 'Non-Fiction', count: 35 },
-          { category: 'Science Fiction', count: 25 },
-          { category: 'Mystery', count: 20 },
-          { category: 'Romance', count: 15 }
-        ],
-        monthlyBorrows: [
-          { month: 'Jan', borrows: 45 },
-          { month: 'Feb', borrows: 52 },
-          { month: 'Mar', borrows: 48 },
-          { month: 'Apr', borrows: 61 },
-          { month: 'May', borrows: 55 },
-          { month: 'Jun', borrows: 59 }
-        ],
-        userActivity: [
-          { user: 'John Doe', booksRead: 12 },
-          { user: 'Jane Smith', booksRead: 10 },
-          { user: 'Mike Johnson', booksRead: 8 },
-          { user: 'Sarah Wilson', booksRead: 7 },
-          { user: 'David Brown', booksRead: 6 }
-        ]
+        totalBooks: 0,
+        totalUsers: 0,
+        totalBorrows: 0,
+        overdueBooks: 0,
+        popularBooks: [],
+        categoryDistribution: [],
+        monthlyBorrows: [],
+        userActivity: []
       });
     } finally {
       setLoading(false);
@@ -242,6 +237,7 @@ function AdminAnalytics() {
             <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Monthly Borrowing Trends</h3>
               <div className="h-64">
+                {analytics.monthlyBorrows.length > 0 ? (
                 <Line 
                   data={monthlyBorrowsData}
                   options={{
@@ -259,6 +255,11 @@ function AdminAnalytics() {
                     },
                   }}
                 />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-500">No borrowing data available</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -266,6 +267,7 @@ function AdminAnalytics() {
             <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Book Categories Distribution</h3>
               <div className="h-64">
+                {analytics.categoryDistribution.length > 0 ? (
                 <Doughnut 
                   data={categoryData}
                   options={{
@@ -278,6 +280,11 @@ function AdminAnalytics() {
                     },
                   }}
                 />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-500">No category data available</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>
@@ -287,6 +294,7 @@ function AdminAnalytics() {
             <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Most Popular Books</h3>
               <div className="h-64">
+                {analytics.popularBooks.length > 0 ? (
                 <Bar 
                   data={popularBooksData}
                   options={{
@@ -304,6 +312,11 @@ function AdminAnalytics() {
                     },
                   }}
                 />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-500">No popular books data available</p>
+                  </div>
+                )}
               </div>
             </div>
 
@@ -311,6 +324,7 @@ function AdminAnalytics() {
             <div className="bg-white/80 backdrop-blur-sm p-6 rounded-2xl shadow-xl border border-white/20">
               <h3 className="text-xl font-bold text-gray-800 mb-4">Top Readers</h3>
               <div className="h-64">
+                {analytics.userActivity.length > 0 ? (
                 <Bar 
                   data={userActivityData}
                   options={{
@@ -328,6 +342,11 @@ function AdminAnalytics() {
                     },
                   }}
                 />
+                ) : (
+                  <div className="h-full flex items-center justify-center">
+                    <p className="text-gray-500">No user activity data available</p>
+                  </div>
+                )}
               </div>
             </div>
           </div>

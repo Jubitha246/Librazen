@@ -8,8 +8,10 @@ function Home() {
   return (
     <div className="min-h-screen bg-white text-black flex flex-col">
       <Navbar />
-      <Banner />
-      <Categories />
+      <div className="flex-1">
+        <Banner />
+        <Categories />
+      </div>
       <Footer />
     </div>
   );
